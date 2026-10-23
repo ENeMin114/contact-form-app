@@ -1,0 +1,123 @@
+# ユーザー向けお問い合わせ管理システム (FashionablyLate)
+
+本アプリケーションは、一般ユーザーからのお問い合わせを受け付ける「入力・確認・完了フォーム」と、管理者がそれらの一覧確認・詳細閲覧・検索・CSV出力を行える「管理者用管理画面」を兼ね備えた、Laravel製のWebアプリケーションです。
+
+## 🛠️ 使用技術 (環境・システム構成)
+
+- **フレームワーク**: Laravel 10.x
+- **言語パック/ランタイム**: PHP 8.1
+- **データベース**: MySQL 8.4
+- **フロントエンド**: Tailwind CSS / Alpine.js (軽量フロントエンドツール)
+- **環境構築**: Docker (Laravel Sail) / Vite 5.x
+- **認証機能**: Laravel Fortify (標準認証パッケージ)
+
+## 🗃️ データベース設計 (テーブル構造)
+
+本システムでは、仕様書に基づき以下の5つのテーブルでデータを効率的に管理しています。
+
+1. **`users` テーブル**: 管理者アカウント情報 (氏名、メールアドレス、暗号化パスワード)
+2. **`categories` テーブル**: お問い合わせの種類 (「商品のお届けについて」など5項目を格納)
+3. **`tags` テーブル**: お問い合わせに紐付くタグ (「女性向け」「男性向け」など5項目を格納)
+4. **`contacts` テーブル**: 一般ユーザーから送信されたお問い合わせのメインデータ
+5. **`contact_tag` テーブル**: `contacts` と `tags` を結びつける多対多（N:M）の中間テーブル
+
+## 🚀 機能一覧
+
+### 1. 一般ユーザー向け機能
+- **お問い合わせ入力フォーム (PG01)**: 
+  - バリデーション機能 (FormRequestへ完全分離、仕様書と完全一致した日本語エラーメッセージを表示)。
+  - 電話番号の3分割入力対応、およびシステム内部での自動結合処理。
+- **お問い合わせ確認画面 (PG02)**: 入力値の引き継ぎ表示、および隠しフィールド（hidden）によるデータ保持。
+- **送信完了画面 (PG03)**: お問い合わせ完了時のサンクスページ表示、およびリレーションを用いたデータベースへの安全な一括保存処理（生SQLの完全排除）。
+
+### 2. 管理者向け機能
+- **認証機能 (Fortify)**: セキュリティ制限に基づき、不要な機能を排除したクリーンな管理者アカウント登録・ログイン制限の実装。
+- **お問い合わせ一覧画面 (PG04)**: 
+  - 最新順での一覧表示、および仕様書要件である「7件ごと」のページネーション。
+  - 複数条件検索 (名前/メールの部分一致、性別、カテゴリ、日付の完全一致、ページネーション状態の維持)。
+  - 詳細表示ポップアップ (Alpine.jsを用いた、画面遷移なしの軽量モーダルウィンドウ) 。
+  - CSVエクスポート機能 (検索結果と完全連動し、WindowsのExcelでも文字化けしないBOM付きのCSVダウンロード機能)。
+
+## 💻 ローカル環境での起動手順
+
+### 1. Dockerコンテナの起動
+プロジェクトのルートディレクトリで以下のコマンドを実行し、環境を起動します。
+```bash
+./vendor/bin/sail up -d
+```
+
+### 2. フロントエンドコンパイルの起動 (Vite)
+別タブのターミナルで以下のコマンドを実行し、開発サーバーを常時起動状態（立ち上げっぱなし）にします。
+```bash
+./vendor/bin/sail npm run dev
+```
+
+### 3. データベースの構築と初期データの投入
+初回起動時、またはリセット時は以下のコマンドを実行して、設計図の反映と5つの初期データ（カテゴリ・タグ）を自動投入します。
+```bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+### 4. ブラウザでのアクセス先
+- 一般ユーザー向けフォーム: `http://localhost/`
+- 管理者ユーザー登録画面: `http://localhost/register`
+- 管理者ログイン画面: `http://localhost/login`
+- 管理者一覧画面 (ログイン後): `http://localhost/admin`
+- データベース管理ツール (phpMyAdmin): `http://localhost:8080/`
+
+## 🗃️ ER図 (テーブル構造)
+
+
+```mermaid
+erDiagram
+    users {
+        bigint_unsigned id PK
+        varchar_255 name
+        varchar_255 email UK
+        timestamp email_verified_at
+        varchar_255 password
+        varchar_100 remember_token
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    categories {
+        bigint_unsigned id PK
+        varchar_255 content
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    contacts {
+        bigint_unsigned id PK
+        bigint_unsigned category_id FK
+        varchar_255 first_name
+        varchar_255 last_name
+        tinyint gender
+        varchar_255 email
+        varchar_11 tel
+        varchar_255 address
+        varchar_255 building
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    tags {
+        bigint_unsigned id PK
+        varchar_255 name
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    contact_tag {
+        bigint_unsigned id PK
+        bigint_unsigned contact_id FK
+        bigint_unsigned tag_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    categories ||--|{ contacts : "has many"
+    contacts ||--|{ contact_tag : "has"
+    tags ||--|{ contact_tag : "has"
+```
