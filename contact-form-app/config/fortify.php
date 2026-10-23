@@ -98,7 +98,7 @@ return [
     |
     */
 
-        'features' => [
+    'features' => [
         Features::registration(), // ユーザー登録機能を有効化
         // Features::resetPasswords(), // コメントアウト (不要なため無効化)
         // Features::emailVerification(),
@@ -109,6 +109,5 @@ return [
         //     'confirmPassword' => true,
         // ]),
     ],
-
 
 ];

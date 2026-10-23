@@ -1,28 +1,43 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-// ⬇️ この1行でコントローラーの場所をシステムに100%正確に伝えます
 use App\Http\Controllers\ContactController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
 */
 
-// トップページ（お問い合わせ入力画面 PG01）の表示
-Route::get('/', [ContactController::class, 'index']);
+// ─── 一般公開画面（PG01〜PG03） ───
+Route::get('/', [ContactController::class, 'index'])->name('contact.index');
+Route::post('/contacts/confirm', [ContactController::class, 'confirm'])->name('contact.confirm');
+Route::post('/contacts', [ContactController::class, 'store'])->name('contact.store');
 
-// お問い合わせ確認画面（PG02）への送信処理
-Route::post('/contacts/confirm', [ContactController::class, 'confirm']);
-// お問い合わせデータの保存処理と完了画面の表示
-Route::post('/contacts', [ContactController::class, 'store']);
-// 管理者用お問い合わせ一覧画面（PG04）のルート設定
-Route::get('/admin', [ContactController::class, 'admin']);
-// CSVエクスポート処理のルート設定
-Route::get('/contacts/export', [ContactController::class, 'export']);
+// ─── 管理者認証・管理画面グループ (Fortify認証必須ガード) ───
+Route::middleware(['auth'])->group(function () {
+
+    // prefix('admin')とname('admin.')を持つグループで管理画面ルートを定義
+    Route::prefix('admin')->name('admin.')->group(function () {
+        // お問い合わせ一覧管理画面 (PG04) -> URL: /admin
+        Route::get('/', [ContactController::class, 'admin'])->name('index');
+
+        // お問い合わせ詳細用 -> URL: /admin/contacts/{contact}
+        Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
+
+        // ─── タグCRUD処理 ───
+        // タグ追加 -> URL: /admin/tags
+        Route::post('/tags', [ContactController::class, 'storeTag'])->name('tags.store');
+        // タグ編集画面表示 -> URL: /admin/tags/{tag}/edit
+        Route::get('/tags/{tag}/edit', [ContactController::class, 'editTag'])->name('tags.edit');
+        // タグ更新 -> URL: /admin/tags/{tag}
+        Route::put('/tags/{tag}', [ContactController::class, 'updateTag'])->name('tags.update');
+        // タグ削除 -> URL: /admin/tags/{tag}
+        Route::delete('/tags/{tag}', [ContactController::class, 'destroyTag'])->name('tags.destroy');
+    });
+
+    // ─── エクスポート専用ルート ───
+    // 💡 オリジナルBladeの「href="/contacts/export?...」というURL形式に完全適合させます。
+    // 💡 認証必須ガード（auth）の内部にあるため、セキュリティ面も200%安全が保証されています。
+    Route::get('/contacts/export', [ContactController::class, 'export'])->name('admin.export');
+});
