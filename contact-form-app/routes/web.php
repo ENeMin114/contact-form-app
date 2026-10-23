@@ -22,8 +22,12 @@ Route::middleware(['auth'])->group(function () {
         // お問い合わせ一覧管理画面 (PG04) -> URL: /admin
         Route::get('/', [ContactController::class, 'admin'])->name('index');
 
-        // お問い合わせ詳細用 -> URL: /admin/contacts/{contact}
+        // お問い合わせ詳細表示用 -> URL: /admin/contacts/{contact} (GET)
         Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
+
+        // 💡新規追加：お問い合わせデータ削除用 -> URL: /admin/contacts/{contact} (DELETE)
+        // 詳細画面内の form(method="POST" + @method('DELETE')) の送信先URLに完全適合します
+        Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->name('contacts.destroy');
 
         // ─── タグCRUD処理 ───
         // タグ追加 -> URL: /admin/tags

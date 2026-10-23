@@ -221,4 +221,20 @@ class ContactController extends Controller
 
         return redirect()->route('admin.index');
     }
+
+    /**
+     * 詳細画面からお問い合わせデータを完全に削除する
+     */
+    public function destroy($id)
+    {
+        // Eloquentを用いて対象のお問い合わせデータを取得
+        $contact = Contact::findOrFail($id);
+
+        // データベース設計の「ON DELETE CASCADE」ルールに準拠し、
+        // 紐づく中間テーブル(contact_tag)のレコードも含めて安全に一括削除します
+        $contact->delete();
+
+        // 削除完了後は、仕様書通り管理画面の一覧ページにリダイレクトします
+        return redirect()->route('admin.index');
+    }
 }
